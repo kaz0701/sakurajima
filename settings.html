@@ -1,0 +1,137 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>各種設定</title>
+<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+<script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="js/cordova.js"></script>
+<script type="text/javascript" charset="utf-8" src="js/GCMPlugin.js"></script>
+<script src="js/jquery.icheck.min.js"></script>
+<script type="text/javascript" src="js/db.js"></script>
+<script src="js/jquery.animate-enhanced.js"></script>
+<script type="text/javascript" charset="utf-8" src="js/iscroll.js"></script>
+<script type="text/javascript" charset="utf-8" src="js/noClickDelay.js"></script>
+<link href="css/viewnavigator.css" rel="stylesheet">
+<link href="css/activityIndicator.css" rel="stylesheet">
+<script type="text/javascript">
+gApp = new Array();
+gApp.deviceready = false;
+gApp.gcmregid = '';
+
+//PhoneGap関係なしに最初に読み込むやつ
+//jQuery関係が多いかな
+$(document).ready(function(){
+    //チェックボックスをいい感じのデザインにしてくれるやつ
+    $('input').iCheck({
+        checkboxClass: 'icheckbox_square-blue',
+        radioClass: 'iradio_square-blue',
+        increaseArea: '20%' // optional
+    });
+
+    //ここでお願い
+    $('form[name=setting]').submit(function(){
+        alert("aaaaa");
+        //ajaxでみなしょが作ったdb_insertに飛ばせ！
+        //type=updateをつけてね！
+        return false;
+    });
+    var rootView =  { title: "Rotten Tomatoes", 
+            view:  $("<div id='rootView'><div class='activityIndicator'></div></div>")
+        };
+            
+        window.viewNavigator = new ViewNavigator( 'body' );
+        window.viewNavigator.pushView( rootView );
+});
+
+//PhoneGapの読み込みが終わったら、onDeviceReadyを呼び出す
+document.addEventListener("deviceready", onDeviceReady, false);
+
+function onDeviceReady(){
+    db_conect();    //ローカルＤＢに接続
+
+    //reg_idをローカルから取り出すトランザクション
+    //DBが存在しないなら作成する
+    db.transaction( createSQL, errSQL, function(){
+        db.transaction( function(tx){
+            tx.executeSql("SELECT * FROM retention_tbl;" , [], function ( tx, results){
+                if(results.rows.item(0).reg_id != ""){
+                    //reg_idがローカルに入っていれば取り出す。
+                    gApp.gcmregid = results.rows.item(0).reg_id;
+                    server_setting_get();
+                }else{
+                    //ない場合、取得し、ローカルＤＢに格納
+                    console.log("GET gcmID");
+                    window.plugins.GCM.register("71526552169", "GCM_Event", function(e){}, function(e){} );
+                }
+                
+            },errSQL);
+        });
+    });
+
+
+}
+
+//Google Croud Messeage
+function GCM_Event(e){
+    switch( e.event ){
+        case 'registered':
+        gApp.gcmregid = e.regid;
+        db.transaction(function(tx){
+            tx.executeSql("UPDATE retention_tbl SET reg_id = '"+gApp.gcmregid+"';");
+        }, errSQL, function(){
+        });
+        if ( gApp.gcmregid.length > 0 ){
+            $.post('http://www21292u.sakura.ne.jp/sakurajima/db_insert.php', 'reg_id='+gApp.gcmregid+"&type=insert", function(msg){
+                if(msg == "ok"){
+                    server_setting_get();
+                }else{
+                    alert("エラーが発生しました。")
+                }
+            });
+        }
+        break;
+    }
+}
+
+function server_setting_get(){
+    //reg_id関係の処理が終わったら、Webから現在の設定を持ってくる
+    $.post('http://www21292u.sakura.ne.jp/sakurajima/setting_get.php', 'reg_id='+gApp.gcmregid, function(data){
+        if(data.type == "ok"){
+            console.log("OK");
+            if(data.information==1){
+                $("input[name=information]").iCheck("check");
+            }
+        }else if(data.type == "error"){
+            alert("サーバーからデータの取得に失敗しました。");
+            alert("reg_id="+data.reg_id);
+            alert("sql="+data.sql);
+        }else{
+            alert("エラーが起こりました。");
+        }
+    },"json");
+}
+
+/*
+//この書き方はやめよう！！
+function update_ajax(){
+    alert("aaaaaa");
+}*/
+</script>
+<style type="text/css">
+form input, form textarea {
+    font-size: 100%;
+}
+</style>
+</head>
+<body>
+<div data-role="content" data-theme="c">
+    <form name="setting" method="POST">
+        <h1>地域設定</h1>
+        <input type="checkbox" name="area"><label for="area">通知する</label>
+        <h1>通知設定</h1>
+        <input type="checkbox" name="information"><label for="information">通知する</label>
+        <input type="submit" name="update_btn" value="更新">
+    </form>
+</div>
+</body>
+</html>

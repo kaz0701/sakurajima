@@ -1,0 +1,28 @@
+body {
+    /*background-image: url("../img/bk.png");*/
+    background-repeat: no-repeat;
+    background-position: top left;
+    background-size: cover;
+    font-family: 'Helvetica';
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+h1 {
+    text-align: center;
+    font-size: 40px;
+    color: white;
+    text-shadow: 0 -2px 0 #999;
+    padding: 0;
+    margin: 100px 0 0 0;
+}
+
+#data_request_btn{
+    padding: 0;
+    margin: 0 auto;
+    text-align: center;
+    font-size: 40px;
+    color: white;
+    text-shadow: 0 -2px 0 #999;
+}

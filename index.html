@@ -1,0 +1,113 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+        <script type="text/javascript" charset="utf-8" src="js/db.js"></script>
+        <script type="text/javascript" charset="utf-8" src="js/cordova.js"></script>
+        <script type="text/javascript" charset="utf-8" src="js/GCMPlugin.js"></script>
+        <link rel="stylesheet" href="css/style.css">
+        <script>
+        gApp = new Array();
+        gApp.deviceready = false;
+        gApp.gcmregid = '';
+            // Set virtual screen width size to 640 pixels
+            // monaca.viewport({width: 480});
+            // PhoneGap event handler
+            document.addEventListener("deviceready", onDeviceReady, false);
+            
+            function getDateTime(){
+                var weeks = new Array('日','月','火','水','木','金','土');
+                var now = new Date();
+                var year = now.getYear(); // 年
+                var month = now.getMonth() + 1; // 月
+                var day = now.getDate(); // 日
+                var week = weeks[ now.getDay() ]; // 曜日
+                var hour = now.getHours(); // 時
+                var min = now.getMinutes(); // 分
+                var sec = now.getSeconds(); // 秒
+
+                if(year < 2000) { year += 1900; }
+
+                // 数値が1桁の場合、頭に0を付けて2桁で表示する指定
+                if(month < 10) { month = "0" + month; }
+                if(day < 10) { day = "0" + day; }
+                if(hour < 10) { hour = "0" + hour; }
+                if(min < 10) { min = "0" + min; }
+                if(sec < 10) { sec = "0" + sec; }
+
+                // 表示開始
+                var date_time = '最終情報取得日時：' + year + '年' + month + '月' + day + '日（' + week + '）' + hour + '時' + min + '分' + sec + '秒';
+                $("#datetime").html(date_time);
+            }
+            function request_data(){
+                //データを持ってくる
+                $.ajax({
+                    url: "http://www21292u.sakura.ne.jp/sakurajima/new.php",
+                    dataType: 'json',
+                    success: function(data) {
+                        $('#data').html("日時："+data.date+"<br/>現象:"+data.phenomenon+"<br/>有色噴煙:"+data.colored_plume+"<br/>白色噴煙:"+data.white_plume+"<br/>流向:"+data.direction+"<br/>横山最大振幅:"+data.max_amplitude+"<br/>爆発音:"+data.explosion+"<br/>体感空振:"+data.air_shock+"<br/>東郡本空振計:"+data.east_total+"<br/>瀬戸空振計:"+data.strait_total+"<br/>弾道を描いて<br>飛散する大きな噴石:"+data.cinder+"<br/>噴煙量:"+data.plume_amount+"<br/>火口:"+data.crater);
+                        getDateTime();
+                    },
+                    error: function(data) {
+                        alert('error id : '+data.data_id);
+                    }
+                });
+            }
+            function onDeviceReady(){
+                db_conect();
+                db.transaction( createSQL, errSQL, function(){
+                    db.transaction( function(tx){
+                        tx.executeSql("SELECT * FROM retention_tbl;" , [], function ( tx, results){
+                            if(results.rows.item(0).reg_id == ""){
+                                window.location.href = "settings.html";
+                            }else{
+                                gApp.gcmregid = results.rows.item(0).reg_id;
+                            }
+                        },errSQL);
+                    });
+                });
+                // Update Toolbar Header
+                //monaca.updateUIStyle("header", "title", "最新噴火情報");
+                //monaca.updateUIStyle("update-button", "disable", false);
+                
+                // regidがなかったら取得
+                /*if( gApp.gcmregid.length <= 0 ){
+					window.plugins.GCM.register("71526552169", "GCM_Event", function(e){}, function(e){} );
+				}*/
+				
+				onTapButton();
+            }
+            function onTapButton(){
+                // 更新ボタンを押した場合
+                $('#datetime').html("");
+                $('#data').html("");
+
+                request_data();
+            }
+        </script>
+    </head>
+    <body>
+        <h1>桜島最新噴火情報</h1>
+        <br/>
+        <div id="data_zone" style="margin_top:100px;">
+            <div id="data" style="text-align:left;">
+<!--                 <table>
+                    <tr>
+                        <td>1-1</td>
+                        <td>1-2</td>
+                        <td>1-3</td>
+                    </tr>
+                </table> -->
+            </div>
+            <div id="datetime" style="margin-top:10px; font-size:7px;">
+            </div>
+        </div>
+        <div id="app-status-div">
+            <ul id="app-status-ul">
+                <li>Cordova Google Cloud Messaging Plugin Demo</li>
+            </ul>
+        </div>
+        <div id="test"><a href="settings.html">せってい</a></div>
+    </body>
+</html>
